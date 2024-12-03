@@ -1,27 +1,27 @@
-// pages/api/download.ts
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Only GET requests are allowed." });
-  }
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const url = searchParams.get("url");
 
-  const { url } = req.query;
-  
   if (!url || typeof url !== "string") {
-    return res.status(400).json({ error: "A valid video URL is required." });
+    return NextResponse.json({ error: "A valid video URL is required." }, { status: 400 });
   }
 
   try {
+    // Video akışını indir
     const response = await axios.get(url, { responseType: "stream" });
 
-    res.setHeader("Content-Disposition", `attachment; filename="video.mp4"`);
-    res.setHeader("Content-Type", "video/mp4");
+    // Başlık ve içerik türü ayarla
+    const headers = new Headers({
+      "Content-Disposition": `attachment; filename="video.mp4"`,
+      "Content-Type": "video/mp4",
+    });
 
-    response.data.pipe(res);
+    return new NextResponse(response.data, { headers });
   } catch (error) {
     console.error("Error downloading the video:", error);
-    res.status(500).json({ error: "Failed to download the video." });
+    return NextResponse.json({ error: "Failed to download the video." }, { status: 500 });
   }
 }
